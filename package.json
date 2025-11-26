@@ -1,0 +1,10 @@
+{
+  "name": "acompanhamento-tutoria",
+  "version": "1.0.0",
+  "description": "Página de acompanhamento com envio por e-mail via Netlify Functions",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "nodemailer": "^6.9.15"
+  }
+}
