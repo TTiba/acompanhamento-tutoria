@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Preenchimento de Acompanhamento</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Papa Parse para ler CSV -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    :root {
+      --green-dark: #1b5e20;
+      --green-main: #2e7d32;
+      --green-light: #e9f5ea;
+      --border-color: #cfd8dc;
+      --error: #c62828;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      margin: 0;
+      padding: 24px;
+      background: radial-gradient(circle at top left, #ffffff 0, #f1f8f4 40%, #e3f2fd 100%);
+      color: #123;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #ffffffcc;
+      border-radius: 16px;
+      padding: 20px 24px 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      backdrop-filter: blur(4px);
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      color: var(--green-dark);
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      margin: 0 0 16px;
+      font-size: 13px;
+      color: #546e7a;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 16px;
+      align-items: flex-end;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      min-width: 220px;
+    }
+
+    label {
+      font-size: 13px;
+      margin-bottom: 4px;
+      color: #37474f;
+      font-weight: 600;
+    }
+
+    input[type="text"],
+    select {
+      padding: 6px 8px;
+      font-size: 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+      background: #ffffff;
+    }
+
+    input[type="text"]:focus,
+    select:focus {
+      border-color: var(--green-main);
+      box-shadow: 0 0 0 3px rgba(46,125,50,0.15);
+    }
+
+    .table-container {
+      max-height: 65vh;
+      overflow: auto;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      margin-bottom: 16px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 13px;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: linear-gradient(90deg, var(--green-dark), var(--green-main));
+      color: #fff;
+      padding: 6px 8px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 1px solid #004d40;
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #eceff1;
+    }
+
+    tbody tr:nth-child(odd) { background: #ffffff; }
+    tbody tr:nth-child(even) { background: var(--green-light); }
+
+    tbody tr:hover { background: #c8e6c9; }
+
+    tbody select {
+      width: 100%;
+      border-radius: 6px;
+      border: 1px solid #b0bec5;
+      padding: 3px 4px;
+      font-size: 12px;
+      background: #ffffff;
+    }
+
+    .actions {
+      margin-top: 4px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 8px 18px;
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 999px;
+      border: none;
+      background: var(--green-main);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 4px 8px rgba(46,125,50,0.3);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.1s, box-shadow 0.1s, background 0.2s;
+    }
+
+    button:hover {
+      background: var(--green-dark);
+      box-shadow: 0 6px 14px rgba(27,94,32,0.4);
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    }
+
+    .status {
+      font-size: 13px;
+      color: #455a64;
+    }
+
+    .status.error {
+      color: var(--error);
+      font-weight: 600;
+    }
+
+    .small {
+      font-size: 12px;
+      color: #78909c;
+      margin-top: 4px;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--green-light);
+      color: var(--green-dark);
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 4px;
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 12px; }
+      .container { padding: 16px; }
+      .table-container { max-height: 60vh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Acompanhamento dos Estudantes</h1>
+    <p class="subtitle">
+      Preencha seu nome, selecione a escola (e opcionalmente a turma), preencha as três últimas colunas
+      e clique em <b>"Gerar CSV e enviar"</b>.
+    </p>
+
+    <div class="filters">
+      <div class="field">
+        <label for="nomeUsuario">Seu nome</label>
+        <input
+          type="text"
+          id="nomeUsuario"
+          placeholder="Digite seu nome completo"
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="field">
+        <label for="escolaInput">
+          Escola
+          <span class="pill">Digite ou selecione</span>
+        </label>
+        <input
+          type="text"
+          id="escolaInput"
+          list="escolasList"
+          placeholder="Comece a digitar o nome da escola..."
+          autocomplete="off"
+        />
+        <datalist id="escolasList"></datalist>
+      </div>
+
+      <div class="field">
+        <label for="turmaSelect">Turma</label>
+        <select id="turmaSelect" disabled>
+          <option value="">Selecione uma escola primeiro</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table id="dadosTable">
+        <thead>
+          <tr id="headerRow"></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="actions">
+      <button id="btnGerar">
+        💾 Gerar CSV e enviar
+      </button>
+      <span class="status" id="statusMsg"></span>
+    </div>
+    <p class="small">
+      O arquivo original é lido de <b>dados.csv</b> (mesma pasta deste HTML).
+    </p>
+  </div>
+
+  <script>
+    const CSV_URL = "dados.csv";
+
+    const COL_MUN_ESCOLA = "MUN / ESCOLA";
+    const COL_TURMA      = "SERIAÇÃO - TURMA";
+    const COL_RESULTADO  = "RESULTADO (SEM 15 a 19/12)";
+    const COL_ACOMP      = "ESTUDANTE ACOMPANHADO?";
+    const COL_ACOES      = "AÇÕES";
+
+    const RESULTADO_OPTIONS = ["", "Aprovado", "Reprovado"];
+    const ACOMP_OPTIONS     = ["", "Sim", "Não"];
+    const ACOES_OPTIONS     = [
+      "",
+      "Acompanhamento Professor(a)",
+      "Aluno Monitor",
+      "Atendimento Especializado",
+      "Atendimento Individualizado",
+      "Plano de Estudos",
+      "PMA",
+      "Rede de Proteção",
+      "Sareh",
+      "Saiu da Lista",
+      "Outro"
+    ];
+
+    let allRows = [];
+    let filteredRows = [];
+    let csvHeaders = [];
+
+    const nomeUsuario    = document.getElementById("nomeUsuario");
+    const escolaInput    = document.getElementById("escolaInput");
+    const escolaDatalist = document.getElementById("escolasList");
+    const turmaSelect    = document.getElementById("turmaSelect");
+    const headerRow      = document.getElementById("headerRow");
+    const tableBody      = document.getElementById("tableBody");
+    const statusMsg      = document.getElementById("statusMsg");
+    const btnGerar       = document.getElementById("btnGerar");
+
+    Papa.parse(CSV_URL, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: function(results) {
+        if (!results.data || !results.data.length) {
+          setStatus("CSV carregado, mas sem registros.", true);
+          return;
+        }
+
+        allRows = results.data.map((row, idx) => {
+          row._id = idx;
+          return row;
+        });
+
+        csvHeaders = results.meta.fields;
+        montarCabecalho();
+        construirFiltros();
+        setStatus("Selecione uma escola para visualizar os dados.");
+      },
+      error: function(err) {
+        console.error("Erro ao carregar o CSV:", err);
+        setStatus("Erro ao carregar o CSV. Verifique se está servindo via http:// e se dados.csv está na mesma pasta.", true);
+      }
+    });
+
+    function setStatus(msg, isError = false) {
+      statusMsg.textContent = msg;
+      if (isError) {
+        statusMsg.classList.add("error");
+      } else {
+        statusMsg.classList.remove("error");
+      }
+    }
+
+    function construirFiltros() {
+      const escolasSet = new Set();
+      allRows.forEach(row => {
+        if (row[COL_MUN_ESCOLA]) escolasSet.add(row[COL_MUN_ESCOLA]);
+      });
+
+      const escolas = Array.from(escolasSet).sort();
+      escolas.forEach(esc => {
+        const opt = document.createElement("option");
+        opt.value = esc;
+        escolaDatalist.appendChild(opt);
+      });
+
+      escolaInput.addEventListener("change", onEscolaChange);
+      escolaInput.addEventListener("input", onEscolaChange);
+
+      turmaSelect.addEventListener("change", () => {
+        aplicarFiltros();
+        renderTabela();
+      });
+    }
+
+    function onEscolaChange() {
+      const escola = escolaInput.value.trim();
+      if (!escola) {
+        turmaSelect.innerHTML = "";
+        turmaSelect.disabled = true;
+        tableBody.innerHTML = "";
+        filteredRows = [];
+        setStatus("Selecione uma escola para visualizar os dados.");
+        return;
+      }
+      atualizarTurmas();
+      aplicarFiltros();
+      renderTabela();
+    }
+
+    function atualizarTurmas() {
+      const escolaSelecionada = escolaInput.value.trim();
+
+      turmaSelect.innerHTML = "";
+      const optTodas = document.createElement("option");
+      optTodas.value = "";
+      optTodas.textContent = "Todas as turmas";
+      turmaSelect.appendChild(optTodas);
+
+      const turmasSet = new Set();
+      allRows.forEach(row => {
+        if (row[COL_MUN_ESCOLA] === escolaSelecionada && row[COL_TURMA]) {
+          turmasSet.add(row[COL_TURMA]);
+        }
+      });
+
+      const turmas = Array.from(turmasSet).sort();
+      turmas.forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t;
+        opt.textContent = t;
+        turmaSelect.appendChild(opt);
+      });
+
+      turmaSelect.disabled = false;
+      turmaSelect.value = "";
+    }
+
+    function aplicarFiltros() {
+      const escola = escolaInput.value.trim();
+      const turma  = turmaSelect.value;
+
+      if (!escola) {
+        filteredRows = [];
+        return;
+      }
+
+      filteredRows = allRows.filter(row => {
+        let ok = row[COL_MUN_ESCOLA] === escola;
+        if (turma) ok = ok && row[COL_TURMA] === turma;
+        return ok;
+      });
+    }
+
+    function montarCabecalho() {
+      headerRow.innerHTML = "";
+      csvHeaders.forEach(h => {
+        const th = document.createElement("th");
+        th.textContent = h;
+        headerRow.appendChild(th);
+      });
+    }
+
+    function renderTabela() {
+      tableBody.innerHTML = "";
+
+      if (!filteredRows.length) {
+        setStatus("Nenhum registro para a escola/turma selecionada.");
+        return;
+      }
+
+      setStatus(`Exibindo ${filteredRows.length} registros filtrados.`);
+
+      filteredRows.forEach((row, index) => {
+        const tr = document.createElement("tr");
+
+        csvHeaders.forEach(colName => {
+          const td = document.createElement("td");
+
+          if (colName === COL_RESULTADO) {
+            const select = criarSelect(RESULTADO_OPTIONS, row[COL_RESULTADO] || "");
+            select.dataset.rowIndex = index;
+            select.dataset.rowId = row._id;
+            select.dataset.colName = COL_RESULTADO;
+            td.appendChild(select);
+          } else if (colName === COL_ACOMP) {
+            const select = criarSelect(ACOMP_OPTIONS, row[COL_ACOMP] || "");
+            select.dataset.rowIndex = index;
+            select.dataset.rowId = row._id;
+            select.dataset.colName = COL_ACOMP;
+            td.appendChild(select);
+          } else if (colName === COL_ACOES) {
+            const select = criarSelect(ACOES_OPTIONS, row[COL_ACOES] || "");
+            select.dataset.rowIndex = index;
+            select.dataset.rowId = row._id;
+            select.dataset.colName = COL_ACOES;
+            td.appendChild(select);
+          } else {
+            td.textContent = row[colName] ?? "";
+          }
+
+          tr.appendChild(td);
+        });
+
+        tableBody.appendChild(tr);
+      });
+    }
+
+    function criarSelect(optionsArray, valorAtual) {
+      const select = document.createElement("select");
+      optionsArray.forEach(optVal => {
+        const opt = document.createElement("option");
+        opt.value = optVal;
+        opt.textContent = optVal;
+        select.appendChild(opt);
+      });
+      select.value = valorAtual;
+
+      select.addEventListener("change", (e) => {
+        const idx   = parseInt(e.target.dataset.rowIndex, 10);
+        const rowId = parseInt(e.target.dataset.rowId, 10);
+        const col   = e.target.dataset.colName;
+        const value = e.target.value;
+
+        if (!isNaN(idx) && filteredRows[idx]) {
+          filteredRows[idx][col] = value;
+        }
+        if (!isNaN(rowId) && allRows[rowId]) {
+          allRows[rowId][col] = value;
+        }
+      });
+
+      return select;
+    }
+
+    function slugify(text) {
+      return text
+        .toString()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+        .toLowerCase();
+    }
+
+    function validarAcompanhamento() {
+      let erros = 0;
+
+      filteredRows.forEach(row => {
+        const acomp = (row[COL_ACOMP] || "").trim();
+        const acoes = (row[COL_ACOES] || "").trim();
+        if (acomp === "Sim" && !acoes) {
+          erros++;
+        }
+      });
+
+      return erros;
+    }
+
+    btnGerar.addEventListener("click", () => {
+      if (!filteredRows.length) {
+        setStatus("Nenhum registro filtrado para gerar o CSV.", true);
+        return;
+      }
+
+      const nome = nomeUsuario.value.trim();
+      if (!nome) {
+        setStatus("Por favor, preencha seu nome antes de gerar o arquivo.", true);
+        nomeUsuario.focus();
+        return;
+      }
+
+      const errosAcomp = validarAcompanhamento();
+      if (errosAcomp > 0) {
+        setStatus(
+          `Existem ${errosAcomp} registro(s) em que "ESTUDANTE ACOMPANHADO?" é "Sim" e "AÇÕES" está em branco. Complete antes de gerar o arquivo.`,
+          true
+        );
+        return;
+      }
+
+      setStatus("Gerando CSV...");
+
+      const csvString = Papa.unparse({
+        fields: csvHeaders,
+        data: filteredRows.map(row =>
+          csvHeaders.map(h => row[h] ?? "")
+        )
+      });
+
+      const escola = escolaInput.value || "Escola não informada";
+      const turmaVisivel = turmaSelect.value || "Todas as turmas";
+
+      const escolaSlug = slugify(escola);
+      const turmaSlug  = slugify(turmaSelect.value || "todas_turmas");
+      const nomeSlug   = slugify(nome || "sem_nome");
+
+      const filename = `acompanhamento_${escolaSlug}_${turmaSlug}_${nomeSlug}.csv`;
+
+      // Download para o usuário
+      const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setStatus("CSV gerado e baixado. Enviando para o servidor...");
+
+      // Envio para a função do Netlify (agora em JSON, com metadados)
+      const payload = {
+        csv: csvString,
+        escola: escola,
+        turma: turmaVisivel,
+        nome: nome,
+        filename: filename
+      };
+
+      fetch("/.netlify/functions/enviar-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("Resposta não OK do servidor");
+        setStatus("CSV enviado para o servidor com sucesso (e-mail disparado).");
+      })
+      .catch(err => {
+        console.error(err);
+        setStatus("CSV baixado. Houve um problema ao enviar para o servidor.", true);
+      });
+    });
+  </script>
+</body>
+</html>
