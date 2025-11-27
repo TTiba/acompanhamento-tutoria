@@ -2,258 +2,263 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Acompanhamento dos Estudantes</title>
+  <title>Preenchimento de Acompanhamento</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <!-- PapaParse para ler o CSV -->
+  <!-- Papa Parse para ler CSV -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <!-- SheetJS para gerar XLSX -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
   <style>
     :root {
-      --verde-escuro: #216c3a;
-      --verde-medio: #3b9150;
-      --verde-claro: #e5f5ea;
-      --fundo: #e9f3ff;
-      --erro: #ffe5e5;
+      --green-dark: #1b5e20;
+      --green-main: #2e7d32;
+      --green-light: #e9f5ea;
+      --border-color: #cfd8dc;
+      --error: #c62828;
+      --error-bg: #ffebee;
+      --error-bg-hover: #ffcdd2;
     }
 
-    * {
-      box-sizing: border-box;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        sans-serif;
-    }
+    * { box-sizing: border-box; }
 
     body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
       margin: 0;
-      padding: 0;
-      background: radial-gradient(circle at top left, #e9f3ff, #dff2e7);
+      padding: 24px;
+      background: radial-gradient(circle at top left, #ffffff 0, #f1f8f4 40%, #e3f2fd 100%);
+      color: #123;
     }
 
-    .page {
-      max-width: 1100px;
-      margin: 30px auto;
-      padding: 24px;
-      background: #ffffff;
-      border-radius: 24px;
-      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #ffffffcc;
+      border-radius: 16px;
+      padding: 20px 24px 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      backdrop-filter: blur(4px);
     }
 
     h1 {
       margin: 0 0 4px;
-      color: var(--verde-escuro);
+      color: var(--green-dark);
+      font-size: 24px;
+      font-weight: 700;
     }
 
     .subtitle {
-      color: #555;
-      margin-bottom: 20px;
-      font-size: 0.95rem;
+      margin: 0 0 16px;
+      font-size: 13px;
+      color: #546e7a;
     }
 
     .filters {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
       margin-bottom: 16px;
+      align-items: flex-end;
     }
 
     .field {
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      font-size: 0.85rem;
+      min-width: 220px;
     }
 
-    .field label {
+    label {
+      font-size: 13px;
+      margin-bottom: 4px;
+      color: #37474f;
       font-weight: 600;
-      color: #333;
     }
 
-    .field input,
-    .field select {
-      padding: 8px 10px;
-      border-radius: 999px;
-      border: 1px solid #ccc;
-      font-size: 0.9rem;
+    input[type="text"],
+    select {
+      padding: 6px 8px;
+      font-size: 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
       outline: none;
-      transition: border-color 0.15s, box-shadow 0.15s;
-      background-color: #f9fafb;
-    }
-
-    .field input:focus,
-    .field select:focus {
-      border-color: var(--verde-medio);
-      box-shadow: 0 0 0 2px rgba(59, 145, 80, 0.25);
+      transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
       background: #ffffff;
     }
 
-    .field input::placeholder {
-      color: #aaa;
+    input[type="text"]:focus,
+    select:focus {
+      border-color: var(--green-main);
+      box-shadow: 0 0 0 3px rgba(46,125,50,0.15);
     }
 
-    .table-wrapper {
-      margin-top: 10px;
-      border-radius: 18px;
+    .error-input {
+      border-color: var(--error) !important;
+      box-shadow: 0 0 0 3px rgba(198,40,40,0.25) !important;
+    }
+
+    .table-container {
+      max-height: 65vh;
       overflow: auto;
-      border: 1px solid #d7e3da;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      margin-bottom: 16px;
     }
 
     table {
-      width: 100%;
       border-collapse: collapse;
-      font-size: 0.9rem;
-      min-width: 900px;
-    }
-
-    thead {
-      background: var(--verde-escuro);
-      color: white;
+      width: 100%;
+      font-size: 13px;
     }
 
     thead th {
-      padding: 8px 6px;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: linear-gradient(90deg, var(--green-dark), var(--green-main));
+      color: #fff;
+      padding: 6px 8px;
       text-align: left;
       font-weight: 600;
-      border-bottom: 1px solid #17502a;
+      border-bottom: 1px solid #004d40;
       white-space: nowrap;
-      font-size: 0.8rem;
     }
 
     tbody td {
-      padding: 6px 6px;
-      border-bottom: 1px solid #edf2f0;
-      font-size: 0.8rem;
+      padding: 6px 8px;
+      border-bottom: 1px solid #eceff1;
     }
 
-    tbody tr:nth-child(odd) {
+    tbody tr:nth-child(odd) { background: #ffffff; }
+    tbody tr:nth-child(even) { background: var(--green-light); }
+
+    tbody tr:hover { background: #c8e6c9; }
+
+    tbody tr.row-error {
+      background: var(--error-bg) !important;
+    }
+    tbody tr.row-error:hover {
+      background: var(--error-bg-hover) !important;
+    }
+
+    tbody select {
+      width: 100%;
+      border-radius: 6px;
+      border: 1px solid #b0bec5;
+      padding: 3px 4px;
+      font-size: 12px;
       background: #ffffff;
     }
 
-    tbody tr:nth-child(even) {
-      background: var(--verde-claro);
-    }
-
-    tbody tr.erro-validacao {
-      background: var(--erro) !important;
-    }
-
-    tbody select,
+    /* Campo de texto da coluna OBSERVAÇÃO */
     tbody input[type="text"] {
       width: 100%;
-      font-size: 0.8rem;
-      padding: 4px 6px;
-      border-radius: 999px;
-      border: 1px solid #ccc;
-      background: #ffffff;
-      outline: none;
+      border-radius: 6px;
+      border: 1px solid #b0bec5;
+      padding: 3px 4px;
+      font-size: 12px;
     }
 
-    tbody input[type="text"] {
-      border-radius: 12px;
-    }
-
-    .actions-bar {
-      margin-top: 14px;
+    .actions {
+      margin-top: 4px;
       display: flex;
+      gap: 12px;
       align-items: center;
-      gap: 16px;
       flex-wrap: wrap;
     }
 
-    .btn-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 18px;
+    button {
+      padding: 8px 18px;
+      font-size: 14px;
+      cursor: pointer;
       border-radius: 999px;
       border: none;
-      background: var(--verde-escuro);
-      color: white;
+      background: var(--green-main);
+      color: #fff;
       font-weight: 600;
-      font-size: 0.95rem;
-      cursor: pointer;
-      box-shadow: 0 10px 24px rgba(33, 108, 58, 0.35);
-      transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
+      box-shadow: 0 4px 8px rgba(46,125,50,0.3);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.1s, box-shadow 0.1s, background 0.2s;
     }
 
-    .btn-primary:hover {
-      background: var(--verde-medio);
+    button:hover {
+      background: var(--green-dark);
+      box-shadow: 0 6px 14px rgba(27,94,32,0.4);
       transform: translateY(-1px);
-      box-shadow: 0 14px 30px rgba(33, 108, 58, 0.4);
     }
 
-    .btn-primary:active {
+    button:active {
       transform: translateY(0);
-      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
-    }
-
-    .btn-primary span.icon {
-      font-size: 1.1rem;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.2);
     }
 
     .status {
-      font-size: 0.85rem;
-    }
-
-    .status.ok {
-      color: var(--verde-medio);
-      font-weight: 600;
+      font-size: 13px;
+      color: #455a64;
     }
 
     .status.error {
-      color: #c62828;
+      color: var(--error);
       font-weight: 600;
     }
 
-    .status.muted {
-      color: #666;
+    .small {
+      font-size: 12px;
+      color: #78909c;
+      margin-top: 4px;
     }
 
-    @media (max-width: 800px) {
-      .page {
-        margin: 8px;
-        padding: 14px;
-      }
-      .filters {
-        grid-template-columns: 1fr;
-      }
-      thead {
-        font-size: 0.75rem;
-      }
-      tbody td {
-        font-size: 0.75rem;
-      }
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--green-light);
+      color: var(--green-dark);
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 4px;
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 12px; }
+      .container { padding: 16px; }
+      .table-container { max-height: 60vh; }
     }
   </style>
 </head>
 <body>
-  <div class="page">
+  <div class="container">
     <h1>Acompanhamento dos Estudantes</h1>
     <p class="subtitle">
-      Preencha seu nome, selecione a escola (e opcionalmente a turma),
-      preencha as três últimas colunas e use o campo de observação quando necessário.
-      Depois clique em <strong>"Gerar XLSX e enviar"</strong>.
+      Preencha seu nome, selecione a escola (e opcionalmente a turma), preencha as três últimas colunas
+      e clique em <b>"Gerar XLSX e enviar"</b>.
     </p>
 
     <div class="filters">
       <div class="field">
-        <label for="nomeResponsavel">Seu nome</label>
+        <label for="nomeUsuario">Seu nome</label>
         <input
           type="text"
-          id="nomeResponsavel"
+          id="nomeUsuario"
           placeholder="Digite seu nome completo"
+          autocomplete="off"
         />
       </div>
 
       <div class="field">
-        <label for="escolaInput">Escola</label>
+        <label for="escolaInput">
+          Escola
+          <span class="pill">Digite ou selecione</span>
+        </label>
         <input
+          type="text"
           id="escolaInput"
-          list="listaEscolas"
-          placeholder="Digite ou selecione"
+          list="escolasList"
+          placeholder="Comece a digitar o nome da escola..."
+          autocomplete="off"
         />
-        <datalist id="listaEscolas"></datalist>
+        <datalist id="escolasList"></datalist>
       </div>
 
       <div class="field">
@@ -264,29 +269,40 @@
       </div>
     </div>
 
-    <div class="table-wrapper">
-      <table id="tabelaAlunos">
-        <thead></thead>
-        <tbody></tbody>
+    <div class="table-container">
+      <table id="dadosTable">
+        <thead>
+          <tr id="headerRow"></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
       </table>
     </div>
 
-    <div class="actions-bar">
-      <button id="btnGerar" class="btn-primary">
-        <span class="icon">💾</span>
-        <span>Gerar XLSX e enviar</span>
+    <div class="actions">
+      <button id="btnGerar">
+        💾 Gerar XLSX e enviar
       </button>
-      <span id="statusMsg" class="status muted">
-        O arquivo original é lido de <strong>dados.csv</strong> (mesma pasta deste HTML).
-      </span>
+      <span class="status" id="statusMsg"></span>
     </div>
+    <p class="small">
+      O arquivo original é lido de <b>dados.csv</b> (mesma pasta deste HTML).
+    </p>
   </div>
 
   <script>
-    // Opções fixas
-    const RESULTADO_OPCOES = ["Aprovado", "Reprovado"];
-    const ACOMPANHADO_OPCOES = ["Sim", "Não"];
-    const ACOES_OPCOES = [
+    const CSV_URL = "dados.csv";
+
+    const COL_MUN_ESCOLA = "MUN / ESCOLA";
+    const COL_TURMA      = "SERIAÇÃO - TURMA";
+    const COL_RESULTADO  = "RESULTADO (SEM 15 a 19/12)";
+    const COL_ACOMP      = "ESTUDANTE ACOMPANHADO?";
+    const COL_ACOES      = "AÇÕES";
+    const COL_OBS        = "OBSERVAÇÃO"; // NOVA COLUNA
+
+    const RESULTADO_OPTIONS = ["", "Aprovado", "Reprovado"];
+    const ACOMP_OPTIONS     = ["", "Sim", "Não"];
+    const ACOES_OPTIONS     = [
+      "",
       "Acompanhamento Professor(a)",
       "Aluno Monitor",
       "Atendimento Especializado",
@@ -299,471 +315,372 @@
       "Outro"
     ];
 
-    // Dados carregados do CSV
-    let csvRows = [];
-    let csvFields = [];
-    let ESCOLA_FIELD = null;
-    let TURMA_FIELD = null;
+    let allRows = [];
+    let filteredRows = [];
+    let csvHeaders = [];
 
-    const tbody = document.querySelector("#tabelaAlunos tbody");
-    const thead = document.querySelector("#tabelaAlunos thead");
-    const escolaInput = document.getElementById("escolaInput");
-    const listaEscolas = document.getElementById("listaEscolas");
-    const turmaSelect = document.getElementById("turmaSelect");
-    const btnGerar = document.getElementById("btnGerar");
-    const statusMsg = document.getElementById("statusMsg");
-    const nomeResponsavel = document.getElementById("nomeResponsavel");
+    const nomeUsuario    = document.getElementById("nomeUsuario");
+    const escolaInput    = document.getElementById("escolaInput");
+    const escolaDatalist = document.getElementById("escolasList");
+    const turmaSelect    = document.getElementById("turmaSelect");
+    const headerRow      = document.getElementById("headerRow");
+    const tableBody      = document.getElementById("tableBody");
+    const statusMsg      = document.getElementById("statusMsg");
+    const btnGerar       = document.getElementById("btnGerar");
 
-    function setStatus(msg, type = "muted") {
-      statusMsg.textContent = msg;
-      statusMsg.className = "status " + type;
-    }
+    Papa.parse(CSV_URL, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: function(results) {
+        if (!results.data || !results.data.length) {
+          setStatus("CSV carregado, mas sem registros.", true);
+          return;
+        }
 
-    // Carregar CSV
-    fetch("dados.csv")
-      .then((r) => {
-        if (!r.ok) throw new Error("Não foi possível carregar dados.csv");
-        return r.text();
-      })
-      .then((csvText) => {
-        Papa.parse(csvText, {
-          header: true,
-          skipEmptyLines: true,
-          complete: (results) => {
-            csvRows = results.data;
-            csvFields = results.meta.fields || [];
-
-            if (!csvRows.length) {
-              setStatus("dados.csv não possui linhas de dados.", "error");
-              return;
-            }
-
-            // Descobrir campos de escola e turma automaticamente
-            ESCOLA_FIELD =
-              csvFields.find((f) =>
-                f.toLowerCase().includes("escola")
-              ) || csvFields[0];
-
-            TURMA_FIELD =
-              csvFields.find((f) =>
-                f.toLowerCase().includes("turma")
-              ) ||
-              csvFields.find((f) => f.toLowerCase().includes("seria")) ||
-              csvFields[1];
-
-            montarCabecalho();
-            popularEscolas();
-            setStatus(
-              "Selecione uma escola para visualizar os dados.",
-              "muted"
-            );
+        allRows = results.data.map((row, idx) => {
+          row._id = idx;
+          // garante que a nova coluna exista em todas as linhas
+          if (row[COL_OBS] === undefined) {
+            row[COL_OBS] = "";
           }
+          return row;
         });
-      })
-      .catch((err) => {
-        console.error(err);
-        setStatus(
-          "Erro ao carregar dados.csv. Verifique se o arquivo está na mesma pasta.",
-          "error"
-        );
-      });
 
-    function montarCabecalho() {
-      thead.innerHTML = "";
-      const tr = document.createElement("tr");
-      csvFields.forEach((field) => {
-        const th = document.createElement("th");
-        th.textContent = field;
-        tr.appendChild(th);
-      });
+        csvHeaders = results.meta.fields;
 
-      const extraHeaders = [
-        "RESULTADO (SEM 15 a 19/12)",
-        "ESTUDANTE ACOMPANHADO?",
-        "AÇÕES",
-        "OBSERVAÇÃO"
-      ];
-      extraHeaders.forEach((h) => {
-        const th = document.createElement("th");
-        th.textContent = h;
-        tr.appendChild(th);
-      });
+        // adiciona a coluna OBSERVAÇÃO ao final, se não vier do CSV
+        if (!csvHeaders.includes(COL_OBS)) {
+          csvHeaders.push(COL_OBS);
+        }
 
-      thead.appendChild(tr);
+        montarCabecalho();
+        construirFiltros();
+        setStatus("Selecione uma escola para visualizar os dados.");
+      },
+      error: function(err) {
+        console.error("Erro ao carregar o CSV:", err);
+        setStatus("Erro ao carregar o CSV. Verifique se está servindo via http:// e se dados.csv está na mesma pasta.", true);
+      }
+    });
+
+    function setStatus(msg, isError = false) {
+      statusMsg.textContent = msg;
+      if (isError) {
+        statusMsg.classList.add("error");
+      } else {
+        statusMsg.classList.remove("error");
+      }
     }
 
-    function popularEscolas() {
-      const escolasSet = new Set(
-        csvRows
-          .map((row) => row[ESCOLA_FIELD])
-          .filter((v) => v && v.trim() !== "")
-      );
-      listaEscolas.innerHTML = "";
-      escolasSet.forEach((esc) => {
+    nomeUsuario.addEventListener("input", () => {
+      if (nomeUsuario.value.trim()) {
+        nomeUsuario.classList.remove("error-input");
+      }
+    });
+
+    function construirFiltros() {
+      const escolasSet = new Set();
+      allRows.forEach(row => {
+        if (row[COL_MUN_ESCOLA]) escolasSet.add(row[COL_MUN_ESCOLA]);
+      });
+
+      const escolas = Array.from(escolasSet).sort();
+      escolas.forEach(esc => {
         const opt = document.createElement("option");
         opt.value = esc;
-        listaEscolas.appendChild(opt);
+        escolaDatalist.appendChild(opt);
+      });
+
+      escolaInput.addEventListener("change", onEscolaChange);
+      escolaInput.addEventListener("input", onEscolaChange);
+
+      turmaSelect.addEventListener("change", () => {
+        aplicarFiltros();
+        renderTabela();
       });
     }
 
-    function atualizarTurmas(escola) {
+    function onEscolaChange() {
+      const escola = escolaInput.value.trim();
       if (!escola) {
-        turmaSelect.innerHTML =
-          '<option value="">Selecione uma escola primeiro</option>';
+        turmaSelect.innerHTML = "";
         turmaSelect.disabled = true;
+        tableBody.innerHTML = "";
+        filteredRows = [];
+        setStatus("Selecione uma escola para visualizar os dados.");
+        return;
+      }
+      atualizarTurmas();
+      aplicarFiltros();
+      renderTabela();
+    }
+
+    function atualizarTurmas() {
+      const escolaSelecionada = escolaInput.value.trim();
+
+      turmaSelect.innerHTML = "";
+      const optTodas = document.createElement("option");
+      optTodas.value = "";
+      optTodas.textContent = "Todas as turmas";
+      turmaSelect.appendChild(optTodas);
+
+      const turmasSet = new Set();
+      allRows.forEach(row => {
+        if (row[COL_MUN_ESCOLA] === escolaSelecionada && row[COL_TURMA]) {
+          turmasSet.add(row[COL_TURMA]);
+        }
+      });
+
+      const turmas = Array.from(turmasSet).sort();
+      turmas.forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t;
+        opt.textContent = t;
+        turmaSelect.appendChild(opt);
+      });
+
+      turmaSelect.disabled = false;
+      turmaSelect.value = "";
+    }
+
+    function aplicarFiltros() {
+      const escola = escolaInput.value.trim();
+      const turma  = turmaSelect.value;
+
+      if (!escola) {
+        filteredRows = [];
         return;
       }
 
-      const turmasSet = new Set(
-        csvRows
-          .filter((row) => row[ESCOLA_FIELD] === escola)
-          .map((row) => row[TURMA_FIELD])
-          .filter((v) => v && v.trim() !== "")
-      );
-
-      turmaSelect.innerHTML =
-        '<option value="">Todas as turmas</option>';
-      turmasSet.forEach((turma) => {
-        const opt = document.createElement("option");
-        opt.value = opt.textContent = turma;
-        turmaSelect.appendChild(opt);
+      filteredRows = allRows.filter(row => {
+        let ok = row[COL_MUN_ESCOLA] === escola;
+        if (turma) ok = ok && row[COL_TURMA] === turma;
+        return ok;
       });
-      turmaSelect.disabled = false;
     }
 
-    function filtrarDados() {
-      const escola = escolaInput.value.trim();
-      const turma = turmaSelect.value;
-
-      if (!escola) {
-        tbody.innerHTML = "";
-        setStatus(
-          "Selecione uma escola para visualizar os dados.",
-          "muted"
-        );
-        return [];
-      }
-
-      let filtrado = csvRows.filter(
-        (row) => row[ESCOLA_FIELD] === escola
-      );
-
-      if (turma) {
-        filtrado = filtrado.filter(
-          (row) => row[TURMA_FIELD] === turma
-        );
-      }
-
-      desenharTabela(filtrado);
-
-      if (!filtrado.length) {
-        setStatus(
-          "Nenhum registro encontrado para o filtro selecionado.",
-          "muted"
-        );
-      } else {
-        setStatus(
-          `${filtrado.length} registro(s) carregado(s). Preencha as colunas finais e clique em "Gerar XLSX e enviar".`,
-          "ok"
-        );
-      }
-
-      return filtrado;
+    function montarCabecalho() {
+      headerRow.innerHTML = "";
+      csvHeaders.forEach(h => {
+        const th = document.createElement("th");
+        th.textContent = h;
+        headerRow.appendChild(th);
+      });
     }
 
-    function desenharTabela(rows) {
-      tbody.innerHTML = "";
-      rows.forEach((row, idx) => {
+    function renderTabela() {
+      tableBody.innerHTML = "";
+
+      if (!filteredRows.length) {
+        setStatus("Nenhum registro para a escola/turma selecionada.");
+        return;
+      }
+
+      setStatus(`Exibindo ${filteredRows.length} registros filtrados.`);
+
+      filteredRows.forEach((row, index) => {
         const tr = document.createElement("tr");
-        tr.dataset.rowIndex = idx.toString();
+        tr.dataset.rowId = row._id;
 
-        // colunas originais
-        csvFields.forEach((field) => {
+        csvHeaders.forEach(colName => {
           const td = document.createElement("td");
-          td.textContent = row[field] ?? "";
+
+          if (colName === COL_RESULTADO) {
+            const select = criarSelect(RESULTADO_OPTIONS, row[COL_RESULTADO] || "");
+            select.dataset.rowIndex = index;
+            select.dataset.rowId = row._id;
+            select.dataset.colName = COL_RESULTADO;
+            td.appendChild(select);
+          } else if (colName === COL_ACOMP) {
+            const select = criarSelect(ACOMP_OPTIONS, row[COL_ACOMP] || "");
+            select.dataset.rowIndex = index;
+            select.dataset.rowId = row._id;
+            select.dataset.colName = COL_ACOMP;
+            td.appendChild(select);
+          } else if (colName === COL_ACOES) {
+            const select = criarSelect(ACOES_OPTIONS, row[COL_ACOES] || "");
+            select.dataset.rowIndex = index;
+            select.dataset.rowId = row._id;
+            select.dataset.colName = COL_ACOES;
+            td.appendChild(select);
+          } else if (colName === COL_OBS) {
+            // Campo de texto editável para OBSERVAÇÃO
+            const input = document.createElement("input");
+            input.type = "text";
+            input.value = row[COL_OBS] || "";
+            input.dataset.rowIndex = index;
+            input.dataset.rowId = row._id;
+            input.dataset.colName = COL_OBS;
+            input.addEventListener("input", (e) => {
+              const idx   = parseInt(e.target.dataset.rowIndex, 10);
+              const rowId = parseInt(e.target.dataset.rowId, 10);
+              const col   = e.target.dataset.colName;
+              const value = e.target.value;
+
+              if (!isNaN(idx) && filteredRows[idx]) {
+                filteredRows[idx][col] = value;
+              }
+              if (!isNaN(rowId) && allRows[rowId]) {
+                allRows[rowId][col] = value;
+              }
+            });
+            td.appendChild(input);
+          } else {
+            td.textContent = row[colName] ?? "";
+          }
+
           tr.appendChild(td);
         });
 
-        // RESULTADO
-        const tdResultado = document.createElement("td");
-        const selRes = document.createElement("select");
-        selRes.className = "resultado-select";
-        const optVazioR = document.createElement("option");
-        optVazioR.value = "";
-        optVazioR.textContent = "";
-        selRes.appendChild(optVazioR);
-        RESULTADO_OPCOES.forEach((op) => {
-          const o = document.createElement("option");
-          o.value = o.textContent = op;
-          selRes.appendChild(o);
-        });
-        tdResultado.appendChild(selRes);
-        tr.appendChild(tdResultado);
-
-        // ESTUDANTE ACOMPANHADO
-        const tdAcomp = document.createElement("td");
-        const selAcomp = document.createElement("select");
-        selAcomp.className = "acomp-select";
-        const optVazioA = document.createElement("option");
-        optVazioA.value = "";
-        optVazioA.textContent = "";
-        selAcomp.appendChild(optVazioA);
-        ACOMPANHADO_OPCOES.forEach((op) => {
-          const o = document.createElement("option");
-          o.value = o.textContent = op;
-          selAcomp.appendChild(o);
-        });
-        tdAcomp.appendChild(selAcomp);
-        tr.appendChild(tdAcomp);
-
-        // AÇÕES
-        const tdAcoes = document.createElement("td");
-        const selAcoes = document.createElement("select");
-        selAcoes.className = "acoes-select";
-        const optVazioAc = document.createElement("option");
-        optVazioAc.value = "";
-        optVazioAc.textContent = "";
-        selAcoes.appendChild(optVazioAc);
-        ACOES_OPCOES.forEach((op) => {
-          const o = document.createElement("option");
-          o.value = o.textContent = op;
-          selAcoes.appendChild(o);
-        });
-        tdAcoes.appendChild(selAcoes);
-        tr.appendChild(tdAcoes);
-
-        // OBSERVAÇÃO (campo livre)
-        const tdObs = document.createElement("td");
-        const inputObs = document.createElement("input");
-        inputObs.type = "text";
-        inputObs.className = "obs-input";
-        inputObs.placeholder = "Observações…";
-        tdObs.appendChild(inputObs);
-        tr.appendChild(tdObs);
-
-        tbody.appendChild(tr);
+        tableBody.appendChild(tr);
       });
     }
 
-    escolaInput.addEventListener("change", () => {
-      const escola = escolaInput.value.trim();
-      atualizarTurmas(escola);
-      filtrarDados();
-    });
+    function criarSelect(optionsArray, valorAtual) {
+      const select = document.createElement("select");
+      optionsArray.forEach(optVal => {
+        const opt = document.createElement("option");
+        opt.value = optVal;
+        opt.textContent = optVal;
+        select.appendChild(opt);
+      });
+      select.value = valorAtual;
 
-    escolaInput.addEventListener("blur", () => {
-      const escola = escolaInput.value.trim();
-      atualizarTurmas(escola);
-      filtrarDados();
-    });
+      select.addEventListener("change", (e) => {
+        const idx   = parseInt(e.target.dataset.rowIndex, 10);
+        const rowId = parseInt(e.target.dataset.rowId, 10);
+        const col   = e.target.dataset.colName;
+        const value = e.target.value;
 
-    turmaSelect.addEventListener("change", filtrarDados);
-
-    function validarAntesDeEnviar() {
-      let ok = true;
-      const nome = nomeResponsavel.value.trim();
-      if (!nome) {
-        setStatus("Por favor, preencha seu nome.", "error");
-        nomeResponsavel.focus();
-        ok = false;
-      }
-
-      const linhas = Array.from(tbody.querySelectorAll("tr"));
-      linhas.forEach((tr) => tr.classList.remove("erro-validacao"));
-
-      if (!linhas.length) {
-        setStatus(
-          "Nenhum registro carregado. Selecione uma escola (e turma, se desejar).",
-          "error"
-        );
-        return false;
-      }
-
-      linhas.forEach((tr) => {
-        const acomp = tr.querySelector(".acomp-select")?.value || "";
-        const acao = tr.querySelector(".acoes-select")?.value || "";
-        if (acomp === "Sim" && !acao) {
-          tr.classList.add("erro-validacao");
-          ok = false;
+        if (!isNaN(idx) && filteredRows[idx]) {
+          filteredRows[idx][col] = value;
+        }
+        if (!isNaN(rowId) && allRows[rowId]) {
+          allRows[rowId][col] = value;
         }
       });
 
-      if (!ok) {
-        setStatus(
-          "Há linhas marcadas em vermelho: quando 'Estudante acompanhado?' for 'Sim', é obrigatório selecionar uma AÇÃO.",
-          "error"
-        );
-      }
-
-      return ok;
+      return select;
     }
 
-    function montarMatrizDadosParaExportar() {
-      const linhas = Array.from(tbody.querySelectorAll("tr"));
-      const header = [
-        ...csvFields,
-        "RESULTADO (SEM 15 a 19/12)",
-        "ESTUDANTE ACOMPANHADO?",
-        "AÇÕES",
-        "OBSERVAÇÃO"
-      ];
-
-      const matriz = [header];
-
-      linhas.forEach((tr) => {
-        const tds = tr.querySelectorAll("td");
-        const base = [];
-        for (let i = 0; i < csvFields.length; i++) {
-          base.push((tds[i]?.textContent || "").trim());
-        }
-
-        const resultado =
-          tr.querySelector(".resultado-select")?.value || "";
-        const acompanhado =
-          tr.querySelector(".acomp-select")?.value || "";
-        const acao =
-          tr.querySelector(".acoes-select")?.value || "";
-        const obs =
-          tr.querySelector(".obs-input")?.value || "";
-
-        matriz.push([
-          ...base,
-          resultado,
-          acompanhado,
-          acao,
-          obs
-        ]);
-      });
-
-      return matriz;
-    }
-
-    function matrizParaCSV(matriz) {
-      return matriz
-        .map((linha) =>
-          linha
-            .map((valor) => {
-              if (valor == null) return "";
-              const s = String(valor);
-              if (/[;",\n]/.test(s)) {
-                return '"' + s.replace(/"/g, '""') + '"';
-              }
-              return s;
-            })
-            .join(";")
-        )
-        .join("\r\n");
-    }
-
-    function baixarXLSX(matriz, nomeArquivo) {
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet(matriz);
-      XLSX.utils.book_append_sheet(wb, ws, "Acompanhamento");
-      const wbout = XLSX.write(wb, {
-        bookType: "xlsx",
-        type: "array"
-      });
-
-      const blob = new Blob([wbout], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = nomeArquivo;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-
-      // retorna base64 para enviar por e-mail
-      const u8 = new Uint8Array(wbout);
-      let bin = "";
-      u8.forEach((b) => (bin += String.fromCharCode(b)));
-      return btoa(bin);
-    }
-
-    function slug(str) {
-      return (str || "")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
+    function slugify(text) {
+      return text
+        .toString()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-zA-Z0-9]+/g, "_")
         .replace(/^_+|_+$/g, "")
-        .toLowerCase()
-        .slice(0, 40);
+        .toLowerCase();
     }
 
-    btnGerar.addEventListener("click", async () => {
-      if (!validarAntesDeEnviar()) return;
+    function validarAcompanhamento() {
+      let erros = 0;
 
-      const escola = escolaInput.value.trim();
-      if (!escola) {
+      document.querySelectorAll("#tableBody tr").forEach(tr => {
+        tr.classList.remove("row-error");
+      });
+
+      filteredRows.forEach(row => {
+        const acomp = (row[COL_ACOMP] || "").trim();
+        const acoes = (row[COL_ACOES] || "").trim();
+
+        if (acomp === "Sim" && !acoes) {
+          erros++;
+          const tr = document.querySelector(`#tableBody tr[data-row-id="${row._id}"]`);
+          if (tr) {
+            tr.classList.add("row-error");
+          }
+        }
+      });
+
+      return erros;
+    }
+
+    btnGerar.addEventListener("click", () => {
+      if (!filteredRows.length) {
+        setStatus("Nenhum registro filtrado para gerar o arquivo.", true);
+        return;
+      }
+
+      const nome = nomeUsuario.value.trim();
+      if (!nome) {
+        setStatus("Por favor, preencha seu nome antes de gerar o arquivo.", true);
+        nomeUsuario.classList.add("error-input");
+        nomeUsuario.focus();
+        return;
+      }
+
+      const errosAcomp = validarAcompanhamento();
+      if (errosAcomp > 0) {
         setStatus(
-          "Selecione uma escola antes de gerar o arquivo.",
-          "error"
+          `Existem ${errosAcomp} registro(s) em que "ESTUDANTE ACOMPANHADO?" é "Sim" e "AÇÕES" está em branco. As linhas foram destacadas em vermelho. Complete antes de gerar o arquivo.`,
+          true
         );
         return;
       }
 
-      const matriz = montarMatrizDadosParaExportar();
-      const nome = nomeResponsavel.value.trim();
-      const turma = turmaSelect.value || "todas_turmas";
+      setStatus("Gerando arquivo XLSX...");
 
-      const baseNome = `acompanhamento_${slug(escola)}_${slug(
-        turma
-      )}_${slug(nome) || "responsavel"}`;
-      const csvNome = `${baseNome}.csv`;
-      const xlsxNome = `${baseNome}.xlsx`;
+      const escola       = escolaInput.value || "Escola não informada";
+      const turmaVisivel = turmaSelect.value || "Todas as turmas";
 
-      try {
-        setStatus(
-          "Gerando arquivos e enviando para o servidor...",
-          "muted"
-        );
+      const escolaSlug = slugify(escola);
+      const turmaSlug  = slugify(turmaSelect.value || "todas_turmas");
+      const nomeSlug   = slugify(nome || "sem_nome");
 
-        const csvString = matrizParaCSV(matriz);
-        const xlsxBase64 = baixarXLSX(matriz, xlsxNome);
+      const baseName  = `acompanhamento_${escolaSlug}_${turmaSlug}_${nomeSlug}`;
+      const csvName   = `${baseName}.csv`;
+      const xlsxName  = `${baseName}.xlsx`;
 
-        const resp = await fetch(
-          "/.netlify/functions/enviar-email",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              csv: csvString,
-              xlsx: xlsxBase64,
-              escola,
-              turma:
-                turma === "todas_turmas" ? "" : turma,
-              nome,
-              filename: csvNome,
-              xlsxFilename: xlsxNome
-            })
-          }
-        );
+      const csvString = Papa.unparse({
+        fields: csvHeaders,
+        data: filteredRows.map(row =>
+          csvHeaders.map(h => row[h] ?? "")
+        )
+      });
 
-        if (!resp.ok) {
-          const text = await resp.text();
-          console.error("Resposta do servidor:", text);
-          setStatus(
-            "Arquivo baixado. Houve um problema ao enviar para o servidor.",
-            "error"
-          );
-        } else {
-          setStatus(
-            "Arquivo XLSX baixado e enviado para o e-mail configurado com sucesso.",
-            "ok"
-          );
-        }
-      } catch (err) {
+      // Monta dados para XLSX
+      const aoa = [
+        csvHeaders,
+        ...filteredRows.map(row => csvHeaders.map(h => row[h] ?? ""))
+      ];
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      XLSX.utils.book_append_sheet(wb, ws, "Dados");
+
+      // Download somente do XLSX (sem CSV, pra evitar múltiplos downloads)
+      XLSX.writeFile(wb, xlsxName);
+
+      // Gera XLSX em base64 para enviar no payload
+      const xlsxBase64 = XLSX.write(wb, { bookType: "xlsx", type: "base64" });
+
+      setStatus("Arquivo gerado. Enviando para o servidor...");
+
+      const payload = {
+        csv: csvString,
+        escola: escola,
+        turma: turmaVisivel,
+        nome: nome,
+        filename: csvName,        // usado como nome do CSV no e-mail
+        xlsx: xlsxBase64,
+        xlsxFilename: xlsxName    // usado como nome do XLSX no e-mail
+      };
+
+      fetch("/.netlify/functions/enviar-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("Resposta não OK do servidor");
+        setStatus("Arquivo enviado para o servidor com sucesso (e-mail disparado).");
+      })
+      .catch(err => {
         console.error(err);
-        setStatus(
-          "Arquivo baixado. Houve um problema ao enviar para o servidor.",
-          "error"
-        );
-      }
+        setStatus("Arquivo baixado. Houve um problema ao enviar para o servidor.", true);
+      });
     });
   </script>
 </body>
