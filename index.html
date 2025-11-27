@@ -95,7 +95,7 @@
     .table-wrapper {
       margin-top: 10px;
       border-radius: 18px;
-      overflow: hidden;
+      overflow: auto;
       border: 1px solid #d7e3da;
     }
 
@@ -103,6 +103,7 @@
       width: 100%;
       border-collapse: collapse;
       font-size: 0.9rem;
+      min-width: 900px;
     }
 
     thead {
@@ -265,9 +266,7 @@
 
     <div class="table-wrapper">
       <table id="tabelaAlunos">
-        <thead>
-          <!-- Preenchido via JS a partir do CSV -->
-        </thead>
+        <thead></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -335,10 +334,7 @@
             csvFields = results.meta.fields || [];
 
             if (!csvRows.length) {
-              setStatus(
-                "dados.csv não possui linhas de dados.",
-                "error"
-              );
+              setStatus("dados.csv não possui linhas de dados.", "error");
               return;
             }
 
@@ -693,8 +689,82 @@
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-zA-Z0-9]+/g, "_")
         .replace(/^_+|_+$/g, "")
-        .lowerCase;
+        .toLowerCase()
+        .slice(0, 40);
     }
+
+    btnGerar.addEventListener("click", async () => {
+      if (!validarAntesDeEnviar()) return;
+
+      const escola = escolaInput.value.trim();
+      if (!escola) {
+        setStatus(
+          "Selecione uma escola antes de gerar o arquivo.",
+          "error"
+        );
+        return;
+      }
+
+      const matriz = montarMatrizDadosParaExportar();
+      const nome = nomeResponsavel.value.trim();
+      const turma = turmaSelect.value || "todas_turmas";
+
+      const baseNome = `acompanhamento_${slug(escola)}_${slug(
+        turma
+      )}_${slug(nome) || "responsavel"}`;
+      const csvNome = `${baseNome}.csv`;
+      const xlsxNome = `${baseNome}.xlsx`;
+
+      try {
+        setStatus(
+          "Gerando arquivos e enviando para o servidor...",
+          "muted"
+        );
+
+        const csvString = matrizParaCSV(matriz);
+        const xlsxBase64 = baixarXLSX(matriz, xlsxNome);
+
+        const resp = await fetch(
+          "/.netlify/functions/enviar-email",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              csv: csvString,
+              xlsx: xlsxBase64,
+              escola,
+              turma:
+                turma === "todas_turmas" ? "" : turma,
+              nome,
+              filename: csvNome,
+              xlsxFilename: xlsxNome
+            })
+          }
+        );
+
+        if (!resp.ok) {
+          const text = await resp.text();
+          console.error("Resposta do servidor:", text);
+          setStatus(
+            "Arquivo baixado. Houve um problema ao enviar para o servidor.",
+            "error"
+          );
+        } else {
+          setStatus(
+            "Arquivo XLSX baixado e enviado para o e-mail configurado com sucesso.",
+            "ok"
+          );
+        }
+      } catch (err) {
+        console.error(err);
+        setStatus(
+          "Arquivo baixado. Houve um problema ao enviar para o servidor.",
+          "error"
+        );
+      }
+    });
   </script>
 </body>
 </html>
