@@ -80,7 +80,12 @@
       transition: border-color 0.15s, box-shadow 0.15s;
       background-color: #f9fafb;
     }
-
+    /* Campo nome com o MESMO tom de vermelho das linhas com erro */
+    #nomeResponsavel.campo-erro {
+      background-color: var(--erro) !important;     /* mesmo fundo das linhas */
+      border-color: #b71c1c !important;             /* borda mais escura */
+      box-shadow: 0 0 0 2px rgba(183, 28, 28, 0.25);
+    }
     .field input:focus,
     .field select:focus {
       border-color: var(--verde-medio);
@@ -628,44 +633,55 @@
 
     turmaSelect.addEventListener("change", filtrarDados);
 
-    function validarAntesDeEnviar() {
-      let ok = true;
-      const nome = nomeResponsavel.value.trim();
-      if (!nome) {
-        setStatus("Por favor, preencha seu nome.", "error");
-        nomeResponsavel.focus();
-        ok = false;
-      }
+function validarAntesDeEnviar() {
+  // limpa erro visual
+  nomeResponsavel.classList.remove("campo-erro");
 
-      const linhas = Array.from(tbody.querySelectorAll("tr"));
-      linhas.forEach((tr) => tr.classList.remove("erro-validacao"));
+  const nome = nomeResponsavel.value.trim();
 
-      if (!linhas.length) {
-        setStatus(
-          "Nenhum registro carregado. Selecione uma escola (e turma, se desejar).",
-          "error"
-        );
-        return false;
-      }
+  // 1) ERRO: nome vazio → sai imediatamente
+  if (!nome) {
+    setStatus("Por favor, preencha seu nome antes de continuar.", "error");
+    nomeResponsavel.classList.add("campo-erro");
+    nomeResponsavel.focus();
+    return false; // <-- interrompe aqui
+  }
 
-      linhas.forEach((tr) => {
-        const acomp = tr.querySelector(".acomp-select")?.value || "";
-        const acao = tr.querySelector(".acoes-select")?.value || "";
-        if (acomp === "Sim" && !acao) {
-          tr.classList.add("erro-validacao");
-          ok = false;
-        }
-      });
+  // 2) Validação das linhas
+  const linhas = Array.from(tbody.querySelectorAll("tr"));
+  linhas.forEach((tr) => tr.classList.remove("erro-validacao"));
 
-      if (!ok) {
-        setStatus(
-          "Há linhas marcadas em vermelho: quando 'Estudante acompanhado?' for 'Sim', é obrigatório selecionar uma AÇÃO.",
-          "error"
-        );
-      }
+  if (!linhas.length) {
+    setStatus(
+      "Nenhum registro carregado. Selecione uma escola e, se desejar, uma turma.",
+      "error"
+    );
+    return false;
+  }
 
-      return ok;
+  // 3) ERRO: “Sim” sem Ação
+  let problema = false;
+  linhas.forEach((tr) => {
+    const acomp = tr.querySelector(".acomp-select")?.value || "";
+    const acao  = tr.querySelector(".acoes-select")?.value || "";
+
+    if (acomp === "Sim" && !acao) {
+      tr.classList.add("erro-validacao");
+      problema = true;
     }
+  });
+
+  if (problema) {
+    setStatus(
+      "Há linhas marcadas em vermelho: quando 'Estudante acompanhado?' for 'Sim', a seleção de AÇÃO é obrigatória.",
+      "error"
+    );
+    return false;
+  }
+
+  // Tudo certo
+  return true;
+}
 
     function montarMatrizDadosParaExportar() {
       const linhas = Array.from(tbody.querySelectorAll("tr"));
